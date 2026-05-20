@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SocialSave — Video Downloader Hub</title>
+<link href="https://fonts.googleapis.com/css2?family=Clash+Display:wght@500;600;700&family=Satoshi:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg: #07080c;
+  --card: #0e1018;
+  --border: rgba(255,255,255,0.06);
+  --text: #eceef5;
+  --muted: #52586b;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Satoshi', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+.bg {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse 60% 40% at 10% 20%, rgba(99,102,241,0.07) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 90% 80%, rgba(236,72,153,0.06) 0%, transparent 60%);
+}
+
+.wrapper {
+  position: relative; z-index: 1;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 64px 24px 100px;
+}
+
+/* Header */
+.header { text-align: center; margin-bottom: 64px; animation: up 0.6s ease both; }
+
+.logo {
+  display: inline-flex; align-items: center; gap: 10px;
+  margin-bottom: 28px;
+}
+
+.logo-icon {
+  width: 48px; height: 48px;
+  background: linear-gradient(135deg, #6366f1, #ec4899);
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px;
+  box-shadow: 0 0 30px rgba(99,102,241,0.3);
+}
+
+.logo-text {
+  font-family: 'Clash Display', sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+h1 {
+  font-family: 'Clash Display', sans-serif;
+  font-size: clamp(36px, 8vw, 60px);
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  margin-bottom: 16px;
+}
+
+.hl {
+  background: linear-gradient(90deg, #6366f1, #ec4899, #f59e0b);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+
+.subtitle {
+  font-family: 'DM Mono', monospace;
+  font-size: 13px;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+}
+
+/* Universal downloader */
+.universal {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 32px;
+  margin-bottom: 48px;
+  animation: up 0.6s 0.1s ease both;
+  position: relative;
+  overflow: hidden;
+}
+
+.universal::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, #6366f1, #ec4899, #f59e0b);
+}
+
+.universal-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+  display: flex; align-items: center; gap: 8px;
+}
+
+.live-dot {
+  width: 6px; height: 6px;
+  background: #22c55e;
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+
+.url-row {
+  display: flex; gap: 10px;
+  margin-bottom: 14px;
+}
+
+.url-input {
+  flex: 1;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px 18px;
+  font-family: 'DM Mono', monospace;
+  font-size: 13px;
+  color: var(--text);
+  outline: none;
+  transition: all 0.3s;
+  caret-color: #6366f1;
+}
+.url-input::placeholder { color: var(--muted); }
+.url-input:focus { border-color: rgba(99,102,241,0.4); box-shadow: 0 0 0 4px rgba(99,102,241,0.06); }
+
+.btn-go {
+  background: linear-gradient(135deg, #6366f1, #ec4899);
+  border: none; border-radius: 14px;
+  padding: 16px 26px;
+  font-family: 'Satoshi', sans-serif;
+  font-size: 15px; font-weight: 700;
+  color: #fff; cursor: pointer;
+  transition: all 0.3s;
+  white-space: nowrap;
+}
+.btn-go:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(99,102,241,0.3); }
+.btn-go:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+.detect-row {
+  min-height: 22px;
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  display: flex; align-items: center; gap: 10px;
+}
+
+.detect-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 12px; border-radius: 999px;
+  font-size: 12px; font-weight: 500;
+  animation: pop 0.3s ease;
+}
+
+@keyframes pop { from { opacity:0; transform:scale(0.85); } to { opacity:1; transform:scale(1); } }
+
+/* Result area */
+.result-area { display: none; }
+.result-area.active { display: block; animation: up 0.4s ease; }
+
+.result-box {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  margin-top: 16px;
+}
+
+.thumb-row {
+  display: flex; gap: 0;
+  align-items: stretch;
+}
+
+.thumb-img {
+  width: 140px; min-height: 100px;
+  object-fit: cover; flex-shrink: 0;
+}
+
+.meta {
+  padding: 16px 20px;
+  flex: 1;
+}
+
+.meta-title {
+  font-weight: 600; font-size: 15px;
+  margin-bottom: 6px; line-height: 1.3;
+}
+
+.meta-sub {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px; color: var(--muted);
+  display: flex; gap: 12px; flex-wrap: wrap;
+}
+
+.formats-row {
+  padding: 16px 20px;
+  border-top: 1px solid var(--border);
+  display: flex; gap: 8px; flex-wrap: wrap;
+  align-items: center;
+}
+
+.formats-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px; color: var(--muted);
+  margin-right: 4px;
+}
+
+.fmt-btn {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 7px 14px;
+  font-family: 'DM Mono', monospace;
+  font-size: 12px; color: var(--text);
+  cursor: pointer; text-decoration: none;
+  transition: all 0.2s;
+  display: inline-flex; align-items: center; gap: 5px;
+}
+
+.fmt-btn:hover {
+  border-color: rgba(99,102,241,0.4);
+  background: rgba(99,102,241,0.08);
+  color: #818cf8;
+}
+
+/* Loading / Error */
+.loader { display:none; align-items:center; gap:10px; padding:12px 0; font-family:'DM Mono',monospace; font-size:13px; color:var(--muted); }
+.loader.active { display:flex; }
+.spinner { width:16px;height:16px;border:2px solid var(--border);border-top-color:#6366f1;border-radius:50%;animation:spin 0.7s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+
+.err { display:none; background:rgba(239,68,68,0.07); border:1px solid rgba(239,68,68,0.2); border-radius:10px; padding:12px 16px; font-family:'DM Mono',monospace; font-size:12px; color:#f87171; margin-top:12px; }
+.err.active { display:block; animation:up 0.3s ease; }
+
+/* Platform grid */
+.section-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px; color: var(--muted);
+  letter-spacing: 0.12em; text-transform: uppercase;
+  margin-bottom: 20px;
+  animation: up 0.6s 0.2s ease both;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  animation: up 0.6s 0.25s ease both;
+}
+
+@media (max-width: 600px) { .grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 400px) { .grid { grid-template-columns: 1fr; } }
+
+.platform-card {
+  display: block;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 24px 20px;
+  text-decoration: none;
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.3s;
+  position: relative;
+  overflow: hidden;
+}
+
+.platform-card::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: var(--glow);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.platform-card:hover::before { opacity: 1; }
+.platform-card:hover {
+  border-color: var(--accent-border);
+  transform: translateY(-4px);
+  box-shadow: 0 16px 40px var(--shadow);
+}
+
+.p-icon {
+  width: 48px; height: 48px;
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px;
+  margin-bottom: 16px;
+  background: var(--icon-bg);
+}
+
+.p-name { font-family:'Clash Display',sans-serif; font-size:16px; font-weight:600; margin-bottom:4px; }
+.p-desc { font-family:'DM Mono',monospace; font-size:11px; color:var(--muted); line-height:1.5; }
+
+.p-arrow {
+  position: absolute; top:20px; right:20px;
+  font-size: 16px; color: var(--muted);
+  transition: all 0.3s;
+}
+.platform-card:hover .p-arrow { color: var(--text); transform: translate(2px,-2px); }
+
+/* Individual card themes */
+.card-ig {
+  --glow: radial-gradient(circle at top left, rgba(225,48,108,0.08), transparent 70%);
+  --accent-border: rgba(225,48,108,0.3);
+  --shadow: rgba(225,48,108,0.1);
+  --icon-bg: linear-gradient(135deg, #833ab4, #e1306c, #fcaf45);
+}
+.card-tt {
+  --glow: radial-gradient(circle at top left, rgba(105,201,208,0.08), transparent 70%);
+  --accent-border: rgba(105,201,208,0.3);
+  --shadow: rgba(105,201,208,0.1);
+  --icon-bg: linear-gradient(135deg, #010101, #69c9d0);
+}
+.card-fb {
+  --glow: radial-gradient(circle at top left, rgba(24,119,242,0.08), transparent 70%);
+  --accent-border: rgba(24,119,242,0.3);
+  --shadow: rgba(24,119,242,0.1);
+  --icon-bg: linear-gradient(135deg, #1877f2, #0a4fa3);
+}
+.card-pt {
+  --glow: radial-gradient(circle at top left, rgba(230,0,35,0.08), transparent 70%);
+  --accent-border: rgba(230,0,35,0.3);
+  --shadow: rgba(230,0,35,0.1);
+  --icon-bg: linear-gradient(135deg, #e60023, #ad081b);
+}
+.card-yt {
+  --glow: radial-gradient(circle at top left, rgba(255,0,0,0.08), transparent 70%);
+  --accent-border: rgba(255,0,0,0.3);
+  --shadow: rgba(255,0,0,0.1);
+  --icon-bg: linear-gradient(135deg, #ff0000, #c4302b);
+}
+.card-tw {
+  --glow: radial-gradient(circle at top left, rgba(0,0,0,0.08), transparent 70%);
+  --accent-border: rgba(255,255,255,0.15);
+  --shadow: rgba(255,255,255,0.05);
+  --icon-bg: linear-gradient(135deg, #14171a, #657786);
+}
+
+.footer {
+  text-align: center; margin-top: 56px;
+  font-family: 'DM Mono', monospace; font-size: 11px;
+  color: var(--muted); line-height: 1.8;
+  animation: up 0.6s 0.4s ease both;
+}
+
+@keyframes up { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+</style>
+</head>
+<body>
+<div class="bg"></div>
+<div class="wrapper">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="logo">
+      <div class="logo-icon">⬇</div>
+      <div class="logo-text">SocialSave</div>
+    </div>
+    <h1>Download videos from<br/><span class="hl">any platform</span></h1>
+    <p class="subtitle">Instagram · TikTok · Facebook · Pinterest · YouTube · Twitter</p>
+  </div>
+
+  <!-- Universal Downloader -->
+  <div class="universal">
+    <div class="universal-label">
+      <span class="live-dot"></span>
+      Universal Downloader — paste any link
+    </div>
+    <div class="url-row">
+      <input type="text" id="url" class="url-input" placeholder="Paste any video URL here..." autocomplete="off" spellcheck="false"/>
+      <button class="btn-go" id="btn-go" onclick="fetchInfo()">Download</button>
+    </div>
+    <div class="detect-row" id="detect-row"></div>
+    <div class="loader" id="loader"><div class="spinner"></div><span id="loader-text">Fetching video...</span></div>
+    <div class="err" id="err"></div>
+    <div class="result-area" id="result-area">
+      <div class="result-box">
+        <div class="thumb-row" id="thumb-row">
+          <img class="thumb-img" id="thumb" src="" alt=""/>
+          <div class="meta">
+            <div class="meta-title" id="meta-title"></div>
+            <div class="meta-sub" id="meta-sub"></div>
+          </div>
+        </div>
+        <div class="formats-row">
+          <span class="formats-label">Download:</span>
+          <div id="fmt-btns"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Platform grid -->
+  <div class="section-label">Or go to a specific platform</div>
+  <div class="grid">
+    <a class="platform-card card-ig" href="instagram.html">
+      <span class="p-arrow">↗</span>
+      <div class="p-icon">📸</div>
+      <div class="p-name">Instagram</div>
+      <div class="p-desc">Reels, Posts, IGTV, Stories</div>
+    </a>
+    <a class="platform-card card-tt" href="tiktok.html">
+      <span class="p-arrow">↗</span>
+      <div class="p-icon">🎵</div>
+      <div class="p-name">TikTok</div>
+      <div class="p-desc">Videos, no watermark</div>
+    </a>
+    <a class="platform-card card-fb" href="facebook.html">
+      <span class="p-arrow">↗</span>
+      <div class="p-icon">📘</div>
+      <div class="p-name">Facebook</div>
+      <div class="p-desc">Public videos in HD/SD</div>
+    </a>
+    <a class="platform-card card-pt" href="pinterest.html">
+      <span class="p-arrow">↗</span>
+      <div class="p-icon">📌</div>
+      <div class="p-name">Pinterest</div>
+      <div class="p-desc">Video pins & stories</div>
+    </a>
+    <a class="platform-card card-yt" href="youtube.html">
+      <span class="p-arrow">↗</span>
+      <div class="p-icon">▶️</div>
+      <div class="p-name">YouTube</div>
+      <div class="p-desc">Videos, Shorts, up to 4K</div>
+    </a>
+    <a class="platform-card card-tw" href="twitter.html">
+      <span class="p-arrow">↗</span>
+      <div class="p-icon">🐦</div>
+      <div class="p-name">Twitter / X</div>
+      <div class="p-desc">Tweet videos & GIFs</div>
+    </a>
+  </div>
+
+  <div class="footer">
+    Powered by yt-dlp · Running locally on your device · No data stored<br/>
+    For personal use only — respect each platform's Terms of Service
+  </div>
+
+</div>
+
+<script>
+const PLATFORM_COLORS = {
+  instagram: { pill: 'background:rgba(225,48,108,0.12);color:#e1306c;border:1px solid rgba(225,48,108,0.25)', icon: '📸' },
+  tiktok:    { pill: 'background:rgba(105,201,208,0.12);color:#69c9d0;border:1px solid rgba(105,201,208,0.25)', icon: '🎵' },
+  facebook:  { pill: 'background:rgba(24,119,242,0.12);color:#1877f2;border:1px solid rgba(24,119,242,0.25)', icon: '📘' },
+  pinterest: { pill: 'background:rgba(230,0,35,0.12);color:#e60023;border:1px solid rgba(230,0,35,0.25)', icon: '📌' },
+  youtube:   { pill: 'background:rgba(255,0,0,0.12);color:#ff0000;border:1px solid rgba(255,0,0,0.25)', icon: '▶️' },
+  twitter:   { pill: 'background:rgba(255,255,255,0.08);color:#aaa;border:1px solid rgba(255,255,255,0.15)', icon: '🐦' },
+};
+
+let currentUrl = '';
+
+document.getElementById('url').addEventListener('input', async () => {
+  const val = document.getElementById('url').value.trim();
+  document.getElementById('detect-row').innerHTML = '';
+  document.getElementById('result-area').classList.remove('active');
+  if (val.length < 10) return;
+  try {
+    const r = await fetch('/api/detect', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({url:val}) });
+    const d = await r.json();
+    if (d.platform) {
+      const c = PLATFORM_COLORS[d.platform];
+      document.getElementById('detect-row').innerHTML = `
+        <span class="detect-pill" style="${c.pill}">${c.icon} Detected: ${d.name}</span>
+        <span style="color:var(--muted);font-family:'DM Mono',monospace;font-size:11px;">ready to download</span>`;
+    }
+  } catch {}
+});
+
+document.getElementById('url').addEventListener('keydown', e => { if(e.key==='Enter') fetchInfo(); });
+
+function setLoading(on, text='Fetching video...') {
+  document.getElementById('loader').classList.toggle('active', on);
+  document.getElementById('loader-text').textContent = text;
+  document.getElementById('btn-go').disabled = on;
+}
+
+function showErr(msg) {
+  const e = document.getElementById('err');
+  e.textContent = '⚠ ' + msg; e.classList.add('active');
+}
+
+function clearErr() { document.getElementById('err').classList.remove('active'); }
+
+async function fetchInfo() {
+  const url = document.getElementById('url').value.trim();
+  if (!url) return showErr('Paste a video URL first.');
+  clearErr();
+  document.getElementById('result-area').classList.remove('active');
+  currentUrl = url;
+  setLoading(true);
+  try {
+    const r = await fetch('/api/info', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({url}) });
+    const data = await r.json();
+    setLoading(false);
+    if (!r.ok) return showErr(data.error || 'Something went wrong.');
+    renderResult(data);
+  } catch {
+    setLoading(false);
+    showErr('Cannot reach server. Run: node server.js');
+  }
+}
+
+function fmtBytes(b) { if(!b) return ''; return b>1048576 ? (b/1048576).toFixed(1)+' MB' : (b/1024).toFixed(0)+' KB'; }
+function fmtDur(s) { if(!s) return ''; return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`; }
+
+function renderResult(data) {
+  const thumb = document.getElementById('thumb');
+  const thumbRow = document.getElementById('thumb-row');
+  if (data.thumbnail) { thumb.src = data.thumbnail; thumbRow.style.display=''; }
+  else thumbRow.style.display='none';
+
+  document.getElementById('meta-title').textContent = data.title || 'Video';
+  const subs = [];
+  if (data.uploader) subs.push('👤 '+data.uploader);
+  if (data.duration) subs.push('⏱ '+fmtDur(data.duration));
+  if (data.view_count) subs.push('👁 '+data.view_count.toLocaleString());
+  document.getElementById('meta-sub').innerHTML = subs.map(s=>`<span>${s}</span>`).join('');
+
+  const btns = document.getElementById('fmt-btns');
+  btns.innerHTML = '';
+  const formats = data.formats?.length ? data.formats : [{format_id:'best',quality:'Best',ext:'mp4',filesize:null}];
+  formats.forEach((f,i) => {
+    const p = new URLSearchParams({ url: currentUrl, format_id: f.format_id, filename: `${data.platform}_video` });
+    const a = document.createElement('a');
+    a.className = 'fmt-btn';
+    a.href = `/api/download?${p}`;
+    a.download = '';
+    a.innerHTML = `↓ ${f.height ? f.height+'p' : f.quality}${fmtBytes(f.filesize) ? ' · '+fmtBytes(f.filesize) : ''}`;
+    btns.appendChild(a);
+  });
+
+  document.getElementById('result-area').classList.add('active');
+}
+</script>
+</body>
+</html>
+

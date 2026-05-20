@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title id="page-title">Platform Downloader</title>
+<link href="https://fonts.googleapis.com/css2?family=Clash+Display:wght@500;600;700&family=Satoshi:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg: #07080c;
+  --card: #0e1018;
+  --border: rgba(255,255,255,0.06);
+  --text: #eceef5;
+  --muted: #52586b;
+  --accent: #6366f1;
+  --accent2: #818cf8;
+  --glow-color: rgba(99,102,241,0.15);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body { font-family:'Satoshi',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+
+.bg-blob {
+  position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(ellipse 70% 50% at 15% 15%, var(--glow-color) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 85% 85%, var(--glow2-color, var(--glow-color)) 0%, transparent 60%);
+}
+
+.wrapper { position:relative;z-index:1;max-width:680px;margin:0 auto;padding:50px 24px 100px; }
+
+/* Back nav */
+.back {
+  display:inline-flex;align-items:center;gap:8px;
+  font-family:'DM Mono',monospace;font-size:12px;color:var(--muted);
+  text-decoration:none;margin-bottom:44px;
+  transition:color 0.2s;
+}
+.back:hover { color:var(--text); }
+
+/* Header */
+.header { margin-bottom:44px; animation: up 0.5s ease both; }
+
+.p-icon-wrap {
+  width:64px;height:64px;border-radius:18px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:28px;margin-bottom:20px;
+  background:var(--icon-grad);
+  box-shadow:0 0 40px var(--glow-color);
+}
+
+h1 {
+  font-family:'Clash Display',sans-serif;
+  font-size:clamp(30px,7vw,50px);font-weight:700;
+  letter-spacing:-0.03em;line-height:1.05;margin-bottom:10px;
+}
+
+.hl { color: var(--accent2); }
+
+.subtitle { font-family:'DM Mono',monospace;font-size:12px;color:var(--muted);letter-spacing:0.04em; }
+
+.chips { display:flex;gap:8px;flex-wrap:wrap;margin-top:14px; }
+.chip {
+  padding:4px 12px;background:rgba(255,255,255,0.04);
+  border:1px solid var(--border);border-radius:999px;
+  font-size:11px;font-weight:500;color:var(--muted);
+}
+
+/* Input card */
+.input-card {
+  background:var(--card);border:1px solid var(--border);
+  border-radius:22px;padding:28px;margin-bottom:20px;
+  animation:up 0.5s 0.1s ease both;position:relative;overflow:hidden;
+}
+
+.input-card::before {
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:var(--icon-grad);opacity:0.6;
+}
+
+.field-label { font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:10px;display:block; }
+
+.url-row { display:flex;gap:10px;margin-bottom:12px; }
+
+.url-input {
+  flex:1;background:rgba(255,255,255,0.04);border:1px solid var(--border);
+  border-radius:12px;padding:15px 16px;
+  font-family:'DM Mono',monospace;font-size:13px;color:var(--text);
+  outline:none;transition:all 0.3s;caret-color:var(--accent);
+}
+.url-input::placeholder { color:var(--muted); }
+.url-input:focus { border-color:var(--focus-border, rgba(99,102,241,0.4)); box-shadow:0 0 0 4px var(--focus-shadow, rgba(99,102,241,0.06)); }
+
+.btn-fetch {
+  background:var(--icon-grad);border:none;border-radius:12px;
+  padding:15px 22px;font-family:'Satoshi',sans-serif;
+  font-size:14px;font-weight:700;color:#fff;cursor:pointer;
+  transition:all 0.3s;white-space:nowrap;
+}
+.btn-fetch:hover { transform:translateY(-2px);box-shadow:0 8px 28px var(--glow-color); }
+.btn-fetch:disabled { opacity:0.5;cursor:not-allowed;transform:none; }
+
+.loader { display:none;align-items:center;gap:10px;padding:10px 0;font-family:'DM Mono',monospace;font-size:12px;color:var(--muted); }
+.loader.active { display:flex; }
+.spinner { width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.7s linear infinite; }
+@keyframes spin{to{transform:rotate(360deg);}}
+
+.err { display:none;background:rgba(239,68,68,0.07);border:1px solid rgba(239,68,68,0.2);border-radius:10px;padding:12px 16px;font-family:'DM Mono',monospace;font-size:12px;color:#f87171;margin-top:10px; }
+.err.active { display:block;animation:up 0.3s ease; }
+
+/* Result */
+.result-card { display:none;background:var(--card);border:1px solid var(--border);border-radius:22px;overflow:hidden;margin-bottom:20px;animation:up 0.4s ease; }
+.result-card.active { display:block; }
+
+.thumb-wrap { position:relative;width:100%;max-height:300px;overflow:hidden;background:#000;display:flex;align-items:center;justify-content:center; }
+.thumb-wrap img { width:100%;object-fit:cover;max-height:300px; }
+.thumb-overlay { position:absolute;inset:0;background:linear-gradient(to bottom,transparent 50%,rgba(7,8,12,0.95) 100%); }
+
+.video-meta { padding:22px 26px;border-bottom:1px solid var(--border); }
+.video-title { font-family:'Clash Display',sans-serif;font-size:18px;font-weight:600;margin-bottom:8px;line-height:1.3; }
+.video-stats { display:flex;gap:14px;flex-wrap:wrap;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted); }
+
+.formats-section { padding:22px 26px; }
+.formats-title { font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:14px; }
+.formats-list { display:flex;flex-direction:column;gap:8px; }
+
+.format-row {
+  display:flex;align-items:center;justify-content:space-between;
+  background:rgba(255,255,255,0.03);border:1px solid var(--border);
+  border-radius:12px;padding:13px 16px;transition:all 0.25s;
+}
+.format-row:hover { border-color:var(--focus-border,rgba(99,102,241,0.3)); background:rgba(99,102,241,0.04); }
+
+.fmt-info { display:flex;align-items:center;gap:12px; }
+.fmt-badge {
+  background:var(--badge-bg);color:var(--accent2);
+  border:1px solid var(--focus-border,rgba(99,102,241,0.2));
+  border-radius:7px;padding:3px 10px;
+  font-family:'DM Mono',monospace;font-size:11px;font-weight:500;
+  min-width:46px;text-align:center;
+}
+.fmt-quality { font-weight:600;font-size:13px; }
+.fmt-size { font-family:'DM Mono',monospace;font-size:11px;color:var(--muted); }
+
+.btn-dl {
+  background:var(--icon-grad);border:none;border-radius:9px;
+  padding:9px 18px;font-family:'Satoshi',sans-serif;
+  font-size:13px;font-weight:600;color:#fff;cursor:pointer;
+  text-decoration:none;display:inline-flex;align-items:center;gap:5px;
+  transition:all 0.25s;
+}
+.btn-dl:hover { transform:translateY(-1px);box-shadow:0 5px 18px var(--glow-color); }
+
+/* Tips */
+.tips { background:var(--card);border:1px solid var(--border);border-radius:20px;padding:24px 26px;animation:up 0.5s 0.2s ease both; }
+.tips-title { font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:14px; }
+.tip-list { display:flex;flex-direction:column;gap:10px; }
+.tip { display:flex;gap:12px;align-items:flex-start;font-size:13px;color:var(--muted);line-height:1.5; }
+.tip-icon { font-size:15px;flex-shrink:0;margin-top:1px; }
+.tip strong { color:var(--text); }
+
+.footer { text-align:center;margin-top:32px;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);line-height:1.7;animation:up 0.5s 0.3s ease both; }
+
+@keyframes up { from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);} }
+@media(max-width:480px){.url-row{flex-direction:column;}.format-row{flex-direction:column;align-items:flex-start;gap:10px;}.btn-dl{width:100%;justify-content:center;}}
+</style>
+</head>
+<body>
+<div class="bg-blob"></div>
+<div class="wrapper">
+
+  <a class="back" href="index.html">← Back to all platforms</a>
+
+  <div class="header">
+    <div class="p-icon-wrap" id="p-icon"></div>
+    <h1 id="p-heading"></h1>
+    <p class="subtitle" id="p-subtitle"></p>
+    <div class="chips" id="p-chips"></div>
+  </div>
+
+  <div class="input-card">
+    <label class="field-label" for="url" id="p-label">Video URL</label>
+    <div class="url-row">
+      <input type="text" id="url" class="url-input" autocomplete="off" spellcheck="false"/>
+      <button class="btn-fetch" id="btn-fetch" onclick="fetchInfo()">Get Video</button>
+    </div>
+    <div class="loader" id="loader"><div class="spinner"></div><span id="loader-text">Fetching video...</span></div>
+    <div class="err" id="err"></div>
+  </div>
+
+  <div class="result-card" id="result-card">
+    <div class="thumb-wrap" id="thumb-wrap">
+      <img id="thumbnail" src="" alt=""/>
+      <div class="thumb-overlay"></div>
+    </div>
+    <div class="video-meta">
+      <div class="video-title" id="video-title"></div>
+      <div class="video-stats" id="video-stats"></div>
+    </div>
+    <div class="formats-section">
+      <div class="formats-title">Choose Quality & Download</div>
+      <div class="formats-list" id="formats-list"></div>
+    </div>
+  </div>
+
+  <div class="tips">
+    <div class="tips-title">Tips</div>
+    <div class="tip-list" id="tips-list"></div>
+  </div>
+
+  <div class="footer" id="footer"></div>
+</div>
+
+<script>
+// ── Platform config injected per-page ────────────────────────────────────────
+// This is set by the inline script below
+let PLATFORM_KEY = '';
+let currentUrl = '';
+
+function initPage(cfg) {
+  PLATFORM_KEY = cfg.key;
+  document.getElementById('page-title').textContent = cfg.name + ' Video Downloader — SocialSave';
+  document.getElementById('p-icon').textContent = cfg.icon;
+  document.getElementById('p-heading').innerHTML = `Download <span class="hl">${cfg.name}</span> Videos`;
+  document.getElementById('p-subtitle').textContent = cfg.subtitle;
+  document.getElementById('p-label').textContent = cfg.name + ' URL';
+  document.getElementById('url').placeholder = cfg.placeholder;
+  document.getElementById('footer').innerHTML = `For personal use only · ${cfg.name} videos · Powered by yt-dlp`;
+
+  // Chips
+  document.getElementById('p-chips').innerHTML = cfg.chips.map(c => `<div class="chip">${c}</div>`).join('');
+
+  // Tips
+  document.getElementById('tips-list').innerHTML = cfg.tips.map(t => `
+    <div class="tip"><span class="tip-icon">${t.icon}</span><span>${t.text}</span></div>
+  `).join('');
+
+  // CSS variables
+  const root = document.documentElement;
+  root.style.setProperty('--icon-grad', cfg.grad);
+  root.style.setProperty('--glow-color', cfg.glow);
+  root.style.setProperty('--glow2-color', cfg.glow2 || cfg.glow);
+  root.style.setProperty('--focus-border', cfg.focusBorder);
+  root.style.setProperty('--focus-shadow', cfg.focusShadow);
+  root.style.setProperty('--accent2', cfg.accentText);
+  root.style.setProperty('--badge-bg', cfg.badgeBg);
+}
+
+// ── API calls ─────────────────────────────────────────────────────────────────
+function setLoading(on, text='Fetching video...') {
+  document.getElementById('loader').classList.toggle('active', on);
+  document.getElementById('loader-text').textContent = text;
+  document.getElementById('btn-fetch').disabled = on;
+}
+function showErr(msg) { const e=document.getElementById('err'); e.textContent='⚠ '+msg; e.classList.add('active'); }
+function clearErr() { document.getElementById('err').classList.remove('active'); }
+
+async function fetchInfo() {
+  const url = document.getElementById('url').value.trim();
+  if (!url) return showErr('Paste a URL first.');
+  clearErr();
+  document.getElementById('result-card').classList.remove('active');
+  currentUrl = url;
+  setLoading(true);
+  try {
+    const r = await fetch('/api/info', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({url}) });
+    const data = await r.json();
+    setLoading(false);
+    if (!r.ok) return showErr(data.error || 'Something went wrong.');
+    renderResult(data);
+  } catch {
+    setLoading(false);
+    showErr('Cannot reach server. Open Termux and run: node server.js');
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('url').addEventListener('keydown', e => { if(e.key==='Enter') fetchInfo(); });
+  document.getElementById('url').addEventListener('focus', async () => {
+    try {
+      const t = await navigator.clipboard.readText();
+      if (!document.getElementById('url').value && t.includes('http')) document.getElementById('url').value = t;
+    } catch {}
+  });
+});
+
+function fmtBytes(b){if(!b)return'';return b>1048576?(b/1048576).toFixed(1)+' MB':(b/1024).toFixed(0)+' KB';}
+function fmtDur(s){if(!s)return'';return`${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;}
+function fmtDate(d){if(!d||d.length!==8)return'';return`${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}`;}
+
+function renderResult(data) {
+  const img = document.getElementById('thumbnail');
+  const tw = document.getElementById('thumb-wrap');
+  if (data.thumbnail) { img.src = data.thumbnail; tw.style.display=''; }
+  else tw.style.display='none';
+
+  document.getElementById('video-title').textContent = data.title || 'Video';
+
+  const stats = [];
+  if(data.uploader) stats.push(`<span>👤 ${data.uploader}</span>`);
+  if(data.duration) stats.push(`<span>⏱ ${fmtDur(data.duration)}</span>`);
+  if(data.upload_date) stats.push(`<span>📅 ${fmtDate(data.upload_date)}</span>`);
+  if(data.like_count) stats.push(`<span>❤️ ${data.like_count.toLocaleString()}</span>`);
+  if(data.view_count) stats.push(`<span>👁 ${data.view_count.toLocaleString()}</span>`);
+  document.getElementById('video-stats').innerHTML = stats.join('');
+
+  const list = document.getElementById('formats-list');
+  list.innerHTML = '';
+  const formats = data.formats?.length ? data.formats : [{format_id:'best',quality:'Best Quality',ext:'mp4',filesize:null,height:0}];
+  formats.forEach((f, i) => {
+    const label = f.height ? `${f.height}p` : (f.quality || 'Best');
+    const size = fmtBytes(f.filesize);
+    const p = new URLSearchParams({ url: currentUrl, format_id: f.format_id, filename: `${PLATFORM_KEY}_video_${label}` });
+    const row = document.createElement('div');
+    row.className = 'format-row';
+    row.innerHTML = `
+      <div class="fmt-info">
+        <span class="fmt-badge">${(f.ext||'mp4').toUpperCase()}</span>
+        <div>
+          <div class="fmt-quality">${label}${i===0?' ⭐':''}</div>
+          ${size ? `<div class="fmt-size">${size}</div>` : ''}
+        </div>
+      </div>
+      <a class="btn-dl" href="/api/download?${p}" download>↓ Download</a>`;
+    list.appendChild(row);
+  });
+
+  document.getElementById('result-card').classList.add('active');
+}
+</script>
+
+<!-- PAGE-SPECIFIC CONFIG (overwritten per platform) -->
+<script id="platform-config">
+initPage({
+  key: "youtube",
+  name: "YouTube",
+  icon: "▶️",
+  subtitle: "Videos · Shorts · Up to 4K Quality",
+  placeholder: "https://www.youtube.com/watch?v=...",
+  chips: ["🎬 Videos", "📱 Shorts", "🎵 Audio", "4K Quality", "⚡ Fast"],
+  grad: "linear-gradient(135deg, #ff0000, #c4302b)",
+  glow: "rgba(255,0,0,0.15)",
+  glow2: "rgba(196,48,43,0.08)",
+  focusBorder: "rgba(255,0,0,0.4)",
+  focusShadow: "rgba(255,0,0,0.06)",
+  accentText: "#fca5a5",
+  badgeBg: "rgba(255,0,0,0.1)",
+  tips: [
+    { icon:"▶️", text:"<strong>Any public video</strong> — Paste any YouTube watch, youtu.be or Shorts URL." },
+    { icon:"📱", text:"<strong>Shorts supported</strong> — YouTube Shorts links work just like regular videos." },
+    { icon:"🎵", text:"<strong>Audio only</strong> — Some formats are audio-only (m4a) for music downloads." },
+    { icon:"🔄", text:"<strong>Keep updated</strong> — Run <strong>pip install -U yt-dlp</strong> if downloads fail." },
+  ]
+});
+</script>
